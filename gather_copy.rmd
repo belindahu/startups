@@ -1,0 +1,206 @@
+---
+title: "Gathering Data"
+author: "Belinda Hu"
+date: "2/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(tidycensus)
+
+# census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
+
+```
+
+```{r load_colleges, echo=FALSE}
+
+# colleges <- read_csv("raw-data/Colleges_and_Universities.csv", 
+#                      col_types = cols(
+#   X = col_double(),
+#   Y = col_double(),
+#   OBJECTID = col_double(),
+#   IPEDSID = col_double(),
+#   NAME = col_character(),
+#   ADDRESS = col_character(),
+#   CITY = col_character(),
+#   STATE = col_character(),
+#   ZIP = col_character(),
+#   ZIP4 = col_character(),
+#   TELEPHONE = col_character(),
+#   TYPE = col_double(),
+#   STATUS = col_character(),
+#   POPULATION = col_double(),
+#   COUNTY = col_character(),
+#   COUNTYFIPS = col_character(),
+#   COUNTRY = col_character(),
+#   LATITUDE = col_double(),
+#   LONGITUDE = col_double(),
+#   NAICS_CODE = col_double(),
+#   NAICS_DESC = col_character(),
+#   SOURCE = col_character(),
+#   SOURCEDATE = col_datetime(format = ""),
+#   VAL_METHOD = col_character(),
+#   VAL_DATE = col_datetime(format = ""),
+#   WEBSITE = col_character(),
+#   STFIPS = col_character(),
+#   COFIPS = col_character(),
+#   SECTOR = col_double(),
+#   LEVEL_ = col_double(),
+#   HI_OFFER = col_double(),
+#   DEG_GRANT = col_double(),
+#   LOCALE = col_double(),
+#   CLOSE_DATE = col_character(),
+#   MERGE_ID = col_double(),
+#   ALIAS = col_character(),
+#   SIZE_SET = col_double(),
+#   INST_SIZE = col_double(),
+#   PT_ENROLL = col_double(),
+#   FT_ENROLL = col_double(),
+#   TOT_ENROLL = col_double(),
+#   HOUSING = col_double(),
+#   DORM_CAP = col_double(),
+#   TOT_EMP = col_double(),
+#   SHELTER_ID = col_character()
+# )
+# )
+```
+
+```{r load_startups, echo=FALSE}
+
+# s_degrees <- read_csv("raw-data/startup-investments/degrees.csv", 
+#                       col_types = cols(
+#   id = col_double(),
+#   object_id = col_character(),
+#   degree_type = col_character(),
+#   subject = col_character(),
+#   institution = col_character(),
+#   graduated_at = col_date(format = ""),
+#   created_at = col_datetime(format = ""),
+#   updated_at = col_datetime(format = "")
+# ))
+# 
+# s_people <- read_csv("raw-data/startup-investments/people.csv",
+#                      col_types = cols(
+#   id = col_double(),
+#   object_id = col_character(),
+#   first_name = col_character(),
+#   last_name = col_character(),
+#   birthplace = col_character(),
+#   affiliation_name = col_character()
+# ))
+
+s_offices <- read_csv("raw-data/startup-investments/offices.csv", 
+                      col_types = cols(
+  id = col_double(),
+  object_id = col_character(),
+  office_id = col_double(),
+  description = col_character(),
+  region = col_character(),
+  address1 = col_character(),
+  address2 = col_character(),
+  city = col_character(),
+  zip_code = col_character(),
+  state_code = col_character(),
+  country_code = col_character(),
+  latitude = col_double(),
+  longitude = col_double(),
+  created_at = col_logical(),
+  updated_at = col_logical()
+)) %>% 
+  select(id, object_id, office_id, region, city, zip_code, state_code, country_code)
+
+# s_funds <- read_csv("raw-data/startup-investments/funds.csv", 
+#                     col_types = cols(
+#   id = col_double(),
+#   fund_id = col_double(),
+#   object_id = col_character(),
+#   name = col_character(),
+#   funded_at = col_date(format = ""),
+#   raised_amount = col_double(),
+#   raised_currency_code = col_character(),
+#   source_url = col_character(),
+#   source_description = col_character(),
+#   created_at = col_datetime(format = ""),
+#   updated_at = col_datetime(format = "")
+# ))
+
+s_objects <- read_csv("raw-data/startup-investments/objects.csv",
+                      col_types = cols(
+  .default = col_character(),
+  entity_id = col_double(),
+  parent_id = col_logical(),
+  founded_at = col_date(format = ""),
+  closed_at = col_date(format = ""),
+  logo_width = col_double(),
+  logo_height = col_double(),
+  first_investment_at = col_date(format = ""),
+  last_investment_at = col_date(format = ""),
+  investment_rounds = col_double(),
+  invested_companies = col_double(),
+  first_funding_at = col_date(format = ""),
+  last_funding_at = col_date(format = ""),
+  funding_rounds = col_double(),
+  funding_total_usd = col_double(),
+  first_milestone_at = col_date(format = ""),
+  last_milestone_at = col_date(format = ""),
+  milestones = col_double(),
+  relationships = col_double(),
+  created_at = col_datetime(format = ""),
+  updated_at = col_datetime(format = "")
+                      ))
+
+s_objects
+```
+
+```{r load_census, echo=FALSE}
+
+zip_county_cross <- read_xlsx("raw-data/ZIP_COUNTY_122014.xlsx") %>% 
+  select(ZIP, COUNTY)
+
+income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
+                   col_types = cols(
+  Id2 = col_character(),
+  Id = col_character(),
+  "Median income (dollars); Estimate; Households" = col_character()
+)) %>% 
+  select("Id2", "Geography", "Median income (dollars); Estimate; Households")
+
+# my_states <- s_offices %>% 
+#   select(state_code) %>% 
+#   distinct() %>% 
+#   na.omit()
+# 
+# my_zipcode <- s_offices %>% 
+#   select(zip_code) %>% 
+#   distinct() %>% 
+#   na.omit()
+
+```
+
+```{r join_data, echo = FALSE}
+
+# need to remove rows without a county
+
+startup_county <- s_offices %>% 
+  filter(country_code == "USA") %>% 
+  full_join(zip_county_cross, by = c("zip_code" = "ZIP")) 
+
+# join zip_county_cross with income dataset 
+
+income_final <- income1 %>% 
+  full_join(zip_county_cross, by = c("Id2" = "COUNTY")) %>% 
+  select(-Id2)
+
+# join income data with office data
+
+s_offices_final <- s_offices %>% 
+  left_join(income_final, by = c("zip_code" = "ZIP"))
+  
+
+```
+
