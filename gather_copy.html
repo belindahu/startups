@@ -381,6 +381,23 @@ $(document).ready(function () {
 </div>
 
 
+<div id="general-topic" class="section level1">
+<h1>General topic</h1>
+<p>My general research topic is to understand the factors that contribute to a startup being founded and its success. Below is the preliminary work I have done.</p>
+</div>
+<div id="datasets" class="section level1">
+<h1>Datasets</h1>
+<div id="startups" class="section level2">
+<h2>Startups</h2>
+<p>I found a dataset of startups scraped from Crunchbase on Kaggle: <a href="https://www.kaggle.com/justinas/startup-investments" class="uri">https://www.kaggle.com/justinas/startup-investments</a>. It contains data on the people, office locations, funding rounds, types, and investments of each startup up until the year of about 2014. I loaded this data in as difference csvs. One issue I did run into was that the objects.csv file was over 100MB, which meant that I could not push to GitHub without using Git LFS.</p>
+</div>
+<div id="colleges" class="section level2">
+<h2>Colleges</h2>
+<p>I found a dataset from the Department of Homeland Security on all higher education institutions in the US: <a href="https://hifld-geoplatform.opendata.arcgis.com/datasets/colleges-and-universities" class="uri">https://hifld-geoplatform.opendata.arcgis.com/datasets/colleges-and-universities</a>.</p>
+</div>
+<div id="census-data" class="section level2">
+<h2>Census Data</h2>
+<p>I downloaded the 2014 ACS 5-year estimate data for median income from American Factfinder (<a href="https://factfinder.census.gov/faces/nav/jsf/pages/index.xhtml" class="uri">https://factfinder.census.gov/faces/nav/jsf/pages/index.xhtml</a>) so that I could assess the socioeconomic statuses of the regions that startups were located in. One issue however, was that the startup dataset only included zip codes while the census data was on a county level. To combat that, I used a Zip Code crosswalk file from the Office for Policy Development &amp; Research (<a href="https://www.huduser.gov/portal/datasets/usps_crosswalk.html" class="uri">https://www.huduser.gov/portal/datasets/usps_crosswalk.html</a>) to join the data.</p>
 <pre><code>## Warning: 27715 parsing failures.
 ##    row       col           expected  actual                                       file
 ## 434914 parent_id 1/0/T/F/TRUE/FALSE c:1     'raw-data/startup-investments/objects.csv'
@@ -424,6 +441,17 @@ $(document).ready(function () {
 ## 2674 Median income (dollars); Estimate; NONFAMILY HOUSEHOLDS - Nonfamily households - Female householder  a double     -  'raw-data/2014_Income.csv'
 ## .... .................................................................................................... ........ ...... ..........................
 ## See problems(...) for more details.</code></pre>
+<p>Many of these are commented out as this is still a work in progress.</p>
+</div>
+<div id="action-items" class="section level2">
+<h2>Action items:</h2>
+<ul>
+<li>configure Git LFS to upload objects.csv file</li>
+<li>brainstorm more potential joins between datasets (as the startup datasets has multiple usable csv files)</li>
+<li>because these datasets are large and messy, I need to clean up the data processing to remove any warnings</li>
+</ul>
+</div>
+</div>
 
 
 
