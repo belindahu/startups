@@ -8,6 +8,8 @@ output: html_document
 
 My general research topic is to understand the factors that contribute to a startup being founded and its success. Below is the preliminary work I have done.
 
+Github repo: https://github.com/belindahu/startups 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
