@@ -171,9 +171,8 @@ s_objects <- read_csv("raw-data/startup-investments/objects.csv",
   relationships = col_double(),
   created_at = col_datetime(format = ""),
   updated_at = col_datetime(format = "")
-                      ))
+                      )) 
 
-s_objects
 ```
 
 ```{r load_census, echo=FALSE}
@@ -220,7 +219,6 @@ income_final <- income1 %>%
 s_offices_final <- s_offices %>% 
   left_join(income_final, by = c("zip_code" = "ZIP"))
   
-
 ```
 
 Many of these are commented out as this is still a work in progress.
@@ -229,3 +227,11 @@ Many of these are commented out as this is still a work in progress.
 - configure Git LFS to upload objects.csv file
 - brainstorm more potential joins between datasets (as the startup datasets has multiple usable csv files)
 - because these datasets are large and messy, I need to clean up the data processing to remove any warnings
+- clean up s_objects
+
+## Potential directions:
+- visualize types of startups by state
+- correlate median income to number of startups
+- visualize where founders of startups are from
+
+
