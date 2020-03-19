@@ -17,8 +17,9 @@ library(tidyverse)
 library(readxl)
 library(janitor)
 library(tidycensus)
+library(dplyr)
 
-# census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
+census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
 
 ```
 
@@ -175,7 +176,7 @@ s_objects <- read_csv("raw-data/startup-investments/objects.csv",
 
 ```
 
-```{r load_census, echo=FALSE}
+```{r load_census, echo=FALSE, message = FALSE}
 
 zip_county_cross <- read_xlsx("raw-data/ZIP_COUNTY_122014.xlsx") %>% 
   select(ZIP, COUNTY)
@@ -185,8 +186,18 @@ income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
   Id2 = col_character(),
   Id = col_character(),
   "Median income (dollars); Estimate; Households" = col_character()
-)) %>% 
-  select("Id2", "Geography", "Median income (dollars); Estimate; Households")
+)) %>%
+  rename(median_income = "Median income (dollars); Estimate; Households", county = Geography) %>% 
+  select(Id2, county, median_income)
+
+# trying a new way to get census data to enable geom_sf
+
+
+
+
+```
+
+```{r extra, echo = FALSE}
 
 # my_states <- s_offices %>% 
 #   select(state_code) %>% 
@@ -200,11 +211,12 @@ income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
 
 ```
 
+
 ```{r join_data, echo = FALSE}
 
 # need to remove rows without a county
 
-startup_county <- s_offices %>% 
+startupbycounty <- s_offices %>% 
   filter(country_code == "USA") %>% 
   full_join(zip_county_cross, by = c("zip_code" = "ZIP")) 
 
@@ -216,9 +228,11 @@ income_final <- income1 %>%
 
 # join income data with office data
 
-s_offices_final <- s_offices %>% 
-  left_join(income_final, by = c("zip_code" = "ZIP"))
-  
+incomebyoffice <- s_offices %>% 
+  left_join(income_final, by = c("zip_code" = "ZIP")) %>% 
+  rename(county = Geography, median_income = "Median income (dollars); Estimate; Households") %>% 
+  select(id, office_id, region, city, zip_code, state_code, country_code, county, median_income) %>% 
+  filter(country_code == "USA")
 ```
 
 Many of these are commented out as this is still a work in progress.
@@ -233,5 +247,30 @@ Many of these are commented out as this is still a work in progress.
 - visualize types of startups by state
 - correlate median income to number of startups
 - visualize where founders of startups are from
+
+```{r MS5, echo = FALSE}
+
+# visualize median income of Calfornia by county
+
+# california <- incomebyoffice %>% 
+#   filter(state_code == "CA") %>% 
+#   ggplot(aes()) + 
+#   geom_bar()
+# 
+# california
+
+map_income <- get_acs(geography = "county",
+                 variables = "B19013_001",
+                 year = 2014,
+                 geometry = TRUE) %>% 
+  rename(county = NAME) 
+
+map_income %>%
+  head(67) %>% 
+  ggplot(aes(fill = estimate)) +
+  geom_sf()
+
+```
+
 
 
