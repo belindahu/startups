@@ -18,6 +18,8 @@ library(readxl)
 library(janitor)
 library(tidycensus)
 library(dplyr)
+library(scales)
+library(tigris)
 
 census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
 
@@ -207,7 +209,6 @@ income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
 
 ```
 
-
 ```{r join_data, echo = FALSE}
 
 # need to remove rows without a county
@@ -262,8 +263,8 @@ map_income <- get_acs(geography = "state",
                  geometry = TRUE) %>% 
   rename(state = NAME) 
 
-ggplot(map_income, aes(fill = estimate)) + 
-  geom_sf()
+# ggplot(map_income, aes(fill = estimate)) + 
+#   geom_sf()
   
 
 # need to join map_income to incomebyoffices to have geometry variable
@@ -277,5 +278,43 @@ ggplot(map_income, aes(fill = estimate)) +
 
 ```
 
+```{r number of startups in each state BAR, echo = FALSE}
 
+bystate <- s_offices %>% 
+  count(state_code) %>% 
+  na.omit() 
+
+bystate %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(., aes(x = reorder(state_code, -n), y = n)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "Top Ten States with the Most Startups", 
+       subtitle = "By Number of Offices Per State", 
+       x = "State", 
+       y = "Number of Startups") +
+  theme_classic() +
+  geom_text(aes(label = comma(n, accuracy = 1), 
+                vjust = -0.2)
+  )
+
+```
+
+```{r number of startups per state MAP, echo = FALSE}
+
+us_states <- read_csv("raw-data/us_states.csv",
+                      col_types = cols(
+  state_name = col_character(),
+  state_code = col_character()
+))
+
+bystate_mapping <- bystate %>% 
+  full_join(us_states, by = c("state_code" = "state_code")) %>% 
+  full_join(map_income, by = c("state_name" = "state")) %>% 
+  select(-variable, -estimate, -moe, -GEOID)
+  
+ggplot(bystate_mapping, aes(fill = n, geometry = geometry)) +
+  geom_sf()
+
+```
 
