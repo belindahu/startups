@@ -190,10 +190,6 @@ income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
   rename(median_income = "Median income (dollars); Estimate; Households", county = Geography) %>% 
   select(Id2, county, median_income)
 
-# trying a new way to get census data to enable geom_sf
-
-
-
 
 ```
 
@@ -222,15 +218,14 @@ startupbycounty <- s_offices %>%
 
 # join zip_county_cross with income dataset 
 
-income_final <- income1 %>% 
+income2 <- income1 %>% 
   full_join(zip_county_cross, by = c("Id2" = "COUNTY")) %>% 
-  select(-Id2)
+  rename(GEOID = Id2)
 
 # join income data with office data
 
-incomebyoffice <- s_offices %>% 
-  left_join(income_final, by = c("zip_code" = "ZIP")) %>% 
-  rename(county = Geography, median_income = "Median income (dollars); Estimate; Households") %>% 
+incomebyoffice1 <- s_offices %>% 
+  left_join(income2, by = c("zip_code" = "ZIP")) %>% 
   select(id, office_id, region, city, zip_code, state_code, country_code, county, median_income) %>% 
   filter(country_code == "USA")
 ```
@@ -248,7 +243,9 @@ Many of these are commented out as this is still a work in progress.
 - correlate median income to number of startups
 - visualize where founders of startups are from
 
-```{r MS5, echo = FALSE}
+# Visualization Work
+
+```{r CA income, echo = FALSE}
 
 # visualize median income of Calfornia by county
 
@@ -259,16 +256,24 @@ Many of these are commented out as this is still a work in progress.
 # 
 # california
 
-map_income <- get_acs(geography = "county",
+map_income <- get_acs(geography = "state",
                  variables = "B19013_001",
-                 year = 2014,
+                 year = 2018,
                  geometry = TRUE) %>% 
-  rename(county = NAME) 
+  rename(state = NAME) 
 
-map_income %>%
-  head(67) %>% 
-  ggplot(aes(fill = estimate)) +
+ggplot(map_income, aes(fill = estimate)) + 
   geom_sf()
+  
+
+# need to join map_income to incomebyoffices to have geometry variable
+
+# incomebyofficeCA <- incomebyoffice1 %>% 
+#   left_join(map_income, by = c("county" = "county")) %>% 
+#   filter(state_code == "CA")
+# 
+# ggplot(incomebyofficeCA, aes(geometry = geometry, fill = median_income)) +
+#   geom_sf() 
 
 ```
 
