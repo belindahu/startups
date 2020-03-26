@@ -1,0 +1,62 @@
+---
+title: 'Milestone #5'
+author: "Belinda Hu"
+date: "3/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(tidycensus)
+library(dplyr)
+library(scales)
+library(tigris)
+
+```
+
+```{r MS5, echo = FALSE}
+
+s_offices <- read_csv("raw-data/startup-investments/offices.csv", 
+                      col_types = cols(
+  id = col_double(),
+  object_id = col_character(),
+  office_id = col_double(),
+  description = col_character(),
+  region = col_character(),
+  address1 = col_character(),
+  address2 = col_character(),
+  city = col_character(),
+  zip_code = col_character(),
+  state_code = col_character(),
+  country_code = col_character(),
+  latitude = col_double(),
+  longitude = col_double(),
+  created_at = col_logical(),
+  updated_at = col_logical()
+)) %>% 
+  select(id, object_id, office_id, region, city, zip_code, state_code, country_code)
+
+bystate <- s_offices %>% 
+  count(state_code) %>% 
+  na.omit() 
+
+bystate %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(., aes(x = reorder(state_code, -n), y = n)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "Top Ten States with the Most Startups", 
+       subtitle = "By Number of Offices Per State", 
+       x = "State", 
+       y = "Number of Startups") +
+  theme_classic() +
+  geom_text(aes(label = comma(n, accuracy = 1), 
+                vjust = -0.2)
+  )
+
+```
+
