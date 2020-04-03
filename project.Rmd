@@ -115,19 +115,6 @@ incomebyoffice1 <- s_offices %>%
   filter(country_code == "USA")
 ```
 
-Many of these are commented out as this is still a work in progress.
-
-## Action items:
-- configure Git LFS to upload objects.csv file
-- brainstorm more potential joins between datasets (as the startup datasets has multiple usable csv files)
-- because these datasets are large and messy, I need to clean up the data processing to remove any warnings
-- clean up s_objects
-
-## Potential directions:
-- visualize types of startups by state
-- correlate median income to number of startups
-- visualize where founders of startups are from
-
 # Visualization Work
 
 ```{r CA income, echo = FALSE}
@@ -168,7 +155,7 @@ bystate <- s_offices %>%
   count(state_code) %>% 
   na.omit() 
 
-bystate %>% 
+plot <- bystate %>% 
   arrange(desc(n)) %>% 
   head(10) %>% 
   ggplot(., aes(x = reorder(state_code, -n), y = n)) +
@@ -181,6 +168,9 @@ bystate %>%
   geom_text(aes(label = comma(n, accuracy = 1), 
                 vjust = -0.2)
   )
+
+ggsave("topten_plot.png", plot = plot, path = "startups_shiny")
+
 
 ```
 
@@ -205,4 +195,17 @@ ggplot(bystate_mapping, aes(fill = n, geometry = geometry)) +
 
 ```
 
-census shapefiles
+Many of these are commented out as this is still a work in progress.
+
+## Action items:
+- configure Git LFS to upload objects.csv file
+- brainstorm more potential joins between datasets (as the startup datasets has multiple usable csv files)
+- because these datasets are large and messy, I need to clean up the data processing to remove any warnings
+- clean up s_objects
+
+## Potential directions:
+- visualize types of startups by state
+- correlate median income to number of startups
+- visualize where founders of startups are from
+- census shapefiles
+- animate funding rounds over time
