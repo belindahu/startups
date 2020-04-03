@@ -1,0 +1,208 @@
+---
+title: "Project"
+author: "Belinda Hu"
+date: "4/3/2020"
+output: html_document
+---
+# General topic
+
+My general research topic is to understand the factors that contribute to a startup being founded and its success. Below is the preliminary work I have done.
+
+Github repo: https://github.com/belindahu/startups 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(scales)
+library(sp)
+library(janitor)
+library(sf)
+library(tidycensus)
+library(tigris)
+
+census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
+
+```
+
+
+```{r load_startups, echo=FALSE}
+
+s_offices <- read_csv("raw-data/startup-investments/offices.csv", 
+                      col_types = cols(
+  id = col_double(),
+  object_id = col_character(),
+  office_id = col_double(),
+  description = col_character(),
+  region = col_character(),
+  address1 = col_character(),
+  address2 = col_character(),
+  city = col_character(),
+  zip_code = col_character(),
+  state_code = col_character(),
+  country_code = col_character(),
+  latitude = col_double(),
+  longitude = col_double(),
+  created_at = col_logical(),
+  updated_at = col_logical()
+)) %>% 
+  select(id, object_id, office_id, region, city, zip_code, state_code, country_code)
+
+s_objects <- read_csv("raw-data/startup-investments/objects.csv",
+                      col_types = cols(
+  .default = col_character(),
+  entity_id = col_double(),
+  parent_id = col_logical(),
+  founded_at = col_date(format = ""),
+  closed_at = col_date(format = ""),
+  logo_width = col_double(),
+  logo_height = col_double(),
+  first_investment_at = col_date(format = ""),
+  last_investment_at = col_date(format = ""),
+  investment_rounds = col_double(),
+  invested_companies = col_double(),
+  first_funding_at = col_date(format = ""),
+  last_funding_at = col_date(format = ""),
+  funding_rounds = col_double(),
+  funding_total_usd = col_double(),
+  first_milestone_at = col_date(format = ""),
+  last_milestone_at = col_date(format = ""),
+  milestones = col_double(),
+  relationships = col_double(),
+  created_at = col_datetime(format = ""),
+  updated_at = col_datetime(format = "")
+                      )) 
+
+```
+
+```{r load_census, echo=FALSE, message = FALSE}
+
+zip_county_cross <- read_xlsx("raw-data/ZIP_COUNTY_122014.xlsx") %>% 
+  select(ZIP, COUNTY)
+
+income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
+                   col_types = cols(
+  Id2 = col_character(),
+  Id = col_character(),
+  "Median income (dollars); Estimate; Households" = col_character()
+)) %>%
+  rename(median_income = "Median income (dollars); Estimate; Households", county = Geography) %>% 
+  select(Id2, county, median_income)
+
+
+```
+
+```{r join_data, echo = FALSE}
+
+# need to remove rows without a county
+
+startupbycounty <- s_offices %>% 
+  filter(country_code == "USA") %>% 
+  full_join(zip_county_cross, by = c("zip_code" = "ZIP")) 
+
+# join zip_county_cross with income dataset 
+
+income2 <- income1 %>% 
+  full_join(zip_county_cross, by = c("Id2" = "COUNTY")) %>% 
+  rename(GEOID = Id2)
+
+# join income data with office data
+
+incomebyoffice1 <- s_offices %>% 
+  left_join(income2, by = c("zip_code" = "ZIP")) %>% 
+  select(id, office_id, region, city, zip_code, state_code, country_code, county, median_income) %>% 
+  filter(country_code == "USA")
+```
+
+Many of these are commented out as this is still a work in progress.
+
+## Action items:
+- configure Git LFS to upload objects.csv file
+- brainstorm more potential joins between datasets (as the startup datasets has multiple usable csv files)
+- because these datasets are large and messy, I need to clean up the data processing to remove any warnings
+- clean up s_objects
+
+## Potential directions:
+- visualize types of startups by state
+- correlate median income to number of startups
+- visualize where founders of startups are from
+
+# Visualization Work
+
+```{r CA income, echo = FALSE}
+
+# visualize median income of Calfornia by county
+
+# california <- incomebyoffice %>% 
+#   filter(state_code == "CA") %>% 
+#   ggplot(aes()) + 
+#   geom_bar()
+# 
+# california
+
+map_income <- get_acs(geography = "state",
+                 variables = "B19013_001",
+                 year = 2018,
+                 geometry = TRUE) %>% 
+  rename(state = NAME) 
+
+# ggplot(map_income, aes(fill = estimate)) + 
+#   geom_sf()
+  
+
+# need to join map_income to incomebyoffices to have geometry variable
+
+# incomebyofficeCA <- incomebyoffice1 %>% 
+#   left_join(map_income, by = c("county" = "county")) %>% 
+#   filter(state_code == "CA")
+# 
+# ggplot(incomebyofficeCA, aes(geometry = geometry, fill = median_income)) +
+#   geom_sf() 
+
+```
+
+```{r number of startups in each state BAR, echo = FALSE}
+
+bystate <- s_offices %>% 
+  count(state_code) %>% 
+  na.omit() 
+
+bystate %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(., aes(x = reorder(state_code, -n), y = n)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "Top Ten States with the Most Startups", 
+       subtitle = "By Number of Offices Per State", 
+       x = "State", 
+       y = "Number of Startups") +
+  theme_classic() +
+  geom_text(aes(label = comma(n, accuracy = 1), 
+                vjust = -0.2)
+  )
+
+```
+
+```{r number of startups per state MAP, echo = FALSE}
+
+us <- states(year = 2018)
+plot(us)
+
+us_states <- read_csv("raw-data/us_states.csv",
+                      col_types = cols(
+  state_name = col_character(),
+  state_code = col_character()
+))
+
+bystate_mapping <- bystate %>% 
+  full_join(us_states, by = c("state_code" = "state_code")) %>% 
+  full_join(map_income, by = c("state_name" = "state")) %>% 
+  select(-variable, -estimate, -moe, -GEOID)
+  
+ggplot(bystate_mapping, aes(fill = n, geometry = geometry)) +
+  geom_sf()
+
+```
+
+census shapefiles
