@@ -15,10 +15,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(readxl)
-library(janitor)
-library(tidycensus)
-library(dplyr)
 library(scales)
+library(sp)
+library(janitor)
+library(sf)
+library(tidycensus)
 library(tigris)
 
 census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
@@ -301,6 +302,9 @@ bystate %>%
 ```
 
 ```{r number of startups per state MAP, echo = FALSE}
+
+us <- states(year = 2018)
+plot(us)
 
 us_states <- read_csv("raw-data/us_states.csv",
                       col_types = cols(
