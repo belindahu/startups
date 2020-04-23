@@ -11,7 +11,7 @@ My general research topic is to understand the factors that contribute to a star
 Github repo: https://github.com/belindahu/startups 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 
 library(tidyverse)
 library(readxl)
@@ -20,7 +20,11 @@ library(sp)
 library(janitor)
 library(sf)
 library(tidycensus)
-library(tigris)
+# library(tigris)
+library(Ecdat)
+library(leaflet)
+library(mapview)
+library(maps)
 
 census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
 
@@ -46,8 +50,7 @@ s_offices <- read_csv("raw-data/startup-investments/offices.csv",
   longitude = col_double(),
   created_at = col_logical(),
   updated_at = col_logical()
-)) %>% 
-  select(id, object_id, office_id, region, city, zip_code, state_code, country_code)
+)) 
 
 s_objects <- read_csv("raw-data/startup-investments/objects.csv",
                       col_types = cols(
@@ -78,17 +81,17 @@ s_objects <- read_csv("raw-data/startup-investments/objects.csv",
 
 ```{r load_census, echo=FALSE, message = FALSE}
 
-zip_county_cross <- read_xlsx("raw-data/ZIP_COUNTY_122014.xlsx") %>% 
-  select(ZIP, COUNTY)
-
-income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
-                   col_types = cols(
-  Id2 = col_character(),
-  Id = col_character(),
-  "Median income (dollars); Estimate; Households" = col_character()
-)) %>%
-  rename(median_income = "Median income (dollars); Estimate; Households", county = Geography) %>% 
-  select(Id2, county, median_income)
+# zip_county_cross <- read_xlsx("raw-data/ZIP_COUNTY_122014.xlsx") %>% 
+#   select(ZIP, COUNTY)
+# 
+# income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
+#                    col_types = cols(
+#   Id2 = col_character(),
+#   Id = col_character(),
+#   "Median income (dollars); Estimate; Households" = col_character()
+# )) %>%
+#   rename(median_income = "Median income (dollars); Estimate; Households", county = Geography) %>% 
+#   select(Id2, county, median_income)
 
 
 ```
@@ -97,22 +100,22 @@ income1 <- read_csv("raw-data/2014_Income.csv", skip = 1,
 
 # need to remove rows without a county
 
-startupbycounty <- s_offices %>% 
-  filter(country_code == "USA") %>% 
-  full_join(zip_county_cross, by = c("zip_code" = "ZIP")) 
-
-# join zip_county_cross with income dataset 
-
-income2 <- income1 %>% 
-  full_join(zip_county_cross, by = c("Id2" = "COUNTY")) %>% 
-  rename(GEOID = Id2)
-
-# join income data with office data
-
-incomebyoffice1 <- s_offices %>% 
-  left_join(income2, by = c("zip_code" = "ZIP")) %>% 
-  select(id, office_id, region, city, zip_code, state_code, country_code, county, median_income) %>% 
-  filter(country_code == "USA")
+# startupbycounty <- s_offices %>% 
+#   filter(country_code == "USA") %>% 
+#   full_join(zip_county_cross, by = c("zip_code" = "ZIP")) 
+# 
+# # join zip_county_cross with income dataset 
+# 
+# income2 <- income1 %>% 
+#   full_join(zip_county_cross, by = c("Id2" = "COUNTY")) %>% 
+#   rename(GEOID = Id2)
+# 
+# # join income data with office data
+# 
+# incomebyoffice1 <- s_offices %>% 
+#   left_join(income2, by = c("zip_code" = "ZIP")) %>% 
+#   select(id, office_id, region, city, zip_code, state_code, country_code, county, median_income) %>% 
+#   filter(country_code == "USA")
 ```
 
 # Visualization Work
@@ -128,11 +131,30 @@ incomebyoffice1 <- s_offices %>%
 # 
 # california
 
-map_income <- get_acs(geography = "state",
-                 variables = "B19013_001",
-                 year = 2018,
-                 geometry = TRUE) %>% 
-  rename(state = NAME) 
+# map_income <- get_acs(geography = "state",
+#                  variables = "B19013_001",
+#                  year = 2013,
+#                  geometry = TRUE,
+#                  options(tigris_use_cache = TRUE)) 
+
+# var2013 <- load_variables(2013, "acs5", cache=TRUE)
+
+# GETTING THE STATE ABBREVIATIONS TO JOIN DATA
+
+stateabbr <- read_csv("raw-data/stateabbr.csv")%>% 
+  select(State, Code)
+
+# accessing acs population data on the state level and joining it with
+# abbreviaions to make it easier to work with
+
+pop <- get_acs(geography = "state",
+                     variables = "B01003_001",
+                     year = 2013,
+               geometry = TRUE,
+               shift_geo = TRUE) %>% 
+  left_join(stateabbr,
+            by = c("NAME" = "State"))
+
 
 # ggplot(map_income, aes(fill = estimate)) + 
 #   geom_sf()
@@ -151,47 +173,74 @@ map_income <- get_acs(geography = "state",
 
 ```{r number of startups in each state BAR, echo = FALSE}
 
+# using office data and counting for offices per state, left joining with pop by
+# state code
+
 bystate <- s_offices %>% 
   count(state_code) %>% 
-  na.omit() 
+  na.omit() %>% 
+  left_join(pop,
+            by = c("state_code" = "Code")) %>% 
+  mutate(estimate = estimate/1000) %>% 
+  mutate(percap = n/estimate)
 
-plot <- bystate %>% 
-  arrange(desc(n)) %>% 
+# to make the top ten graph
+
+bystate %>% 
+  arrange(desc(percap)) %>% 
   head(10) %>% 
-  ggplot(., aes(x = reorder(state_code, -n), y = n)) +
+  ggplot(., aes(x = reorder(state_code, -percap), y = percap)) +
   geom_bar(stat = "identity") + 
-  labs(title = "Top Ten States with the Most Startups", 
+  labs(title = "Top Ten States with the Most Startups Per Capita", 
        subtitle = "By Number of Offices Per State", 
        x = "State", 
-       y = "Number of Startups") +
+       y = "Number of Startups Per 1000 People") +
   theme_classic() +
   geom_text(aes(label = comma(n, accuracy = 1), 
                 vjust = -0.2)
   )
 
-ggsave("topten_plot.png", plot = plot, path = "startups_shiny")
+
+
+# ggsave("topten_plot.png", plot = plot, path = "startups_shiny")
 
 
 ```
 
 ```{r number of startups per state MAP, echo = FALSE}
 
-us <- states(year = 2018)
-plot(us)
+# need to join offices and objects on ID to get lat and long with
+# name/category_code. joining on object_id (offices) and entity_id (objects)
 
-us_states <- read_csv("raw-data/us_states.csv",
-                      col_types = cols(
-  state_name = col_character(),
-  state_code = col_character()
-))
+location <- s_offices %>% 
+  select(latitude, longitude, object_id)
 
-bystate_mapping <- bystate %>% 
-  full_join(us_states, by = c("state_code" = "state_code")) %>% 
-  full_join(map_income, by = c("state_name" = "state")) %>% 
-  select(-variable, -estimate, -moe, -GEOID)
-  
-ggplot(bystate_mapping, aes(fill = n, geometry = geometry)) +
-  geom_sf()
+object_office <- s_objects %>% 
+  select(entity_id, name, category_code) %>% 
+  mutate(entity_id = as.character(entity_id)) %>% 
+  full_join(location, by = c("entity_id" = "object_id")) 
+
+m <- leaflet(options = leafletOptions(minZoom = 0, maxZoom = 18)) %>%
+  setView(lng = -100, lat = 40, zoom = 4) %>% 
+  addTiles() %>% 
+  fitBounds(-120, 30, -80, 50) %>% 
+  addCircles(data = location)
+
+m
+
+%>% 
+  addMarkers(~latitude, ~longitude, label = ~as.character(name), data = object_office)
+
+m
+
+# creates a prettier map with colored states
+
+# mapStates = map("state", fill = TRUE, plot = FALSE)
+# leaflet(data = mapStates) %>% addTiles() %>%
+#   addPolygons(fillColor = topo.colors(10, alpha = NULL), stroke = FALSE) %>% 
+#   addCircles(data = location)
+
+## need to do something about dots in the ocean and in other countries
 
 ```
 
@@ -209,3 +258,21 @@ Many of these are commented out as this is still a work in progress.
 - visualize where founders of startups are from
 - census shapefiles
 - animate funding rounds over time
+- startups per capita
+- animation of startups founded (sliding timeline scale, plots startups based off industry)
+
+## Requirements:
+- one interactive shiny app
+- model page
+- data page
+- about page
+
+## Stata - no parallel computing
+import using csv
+insheet using csv
+see variables
+take off variables
+send it back
+
+## Questions
+- how to account for loss of datapoints when joining?

@@ -22,7 +22,7 @@ library(sf)
 library(tidycensus)
 library(tigris)
 
-census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
+# census_api_key("03bf7eeb14e29c5d6fd4073fce357ba84f0017cc")
 
 ```
 
@@ -258,11 +258,11 @@ Many of these are commented out as this is still a work in progress.
 # 
 # california
 
-map_income <- get_acs(geography = "state",
-                 variables = "B19013_001",
-                 year = 2018,
-                 geometry = TRUE) %>% 
-  rename(state = NAME) 
+# map_income <- get_acs(geography = "state",
+#                  variables = "B19013_001",
+#                  year = 2018,
+#                  geometry = TRUE) %>% 
+#   rename(state = NAME) 
 
 # ggplot(map_income, aes(fill = estimate)) + 
 #   geom_sf()
